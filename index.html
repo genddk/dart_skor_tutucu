@@ -45,37 +45,59 @@
     <div id="toast" class="fixed top-4 left-1/2 hidden z-50 px-6 py-3 rounded-full text-white font-bold shadow-lg text-lg pointer-events-none transform -translate-x-1/2">
     </div>
 
-    <div id="setup-view" class="flex-1 flex flex-col items-center justify-center p-6 space-y-12">
-        <div class="text-center">
-            <h1 class="text-5xl font-display text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-emerald-400 mb-2">DART</h1>
-            <p class="text-slate-400 text-lg">Skor Tablosu</p>
+    <!-- Setup View (Başlangıç Ekranı) -->
+    <div id="setup-view" class="flex-1 flex flex-col items-center justify-center p-6 space-y-10 bg-slate-900">
+        <div class="text-center space-y-2">
+            <div class="inline-flex items-center justify-center w-20 h-20 rounded-full bg-red-600/20 border-2 border-red-500 mb-2 shadow-lg shadow-red-900/30">
+                <span class="text-4xl">🎯</span>
+            </div>
+            <h1 class="text-5xl font-display font-black tracking-wider text-white">DART SKOR</h1>
+            <p class="text-slate-400 text-sm">Başlamak için oyun modunu seçin</p>
         </div>
-        
-        <div class="w-full max-w-sm space-y-6">
-            <button onclick="startGame(301)" class="btn-press w-full py-6 rounded-2xl bg-slate-800 border border-slate-700 shadow-xl shadow-black/50 text-3xl font-display text-blue-400 flex flex-col items-center justify-center gap-2">
+
+        <div class="w-full max-w-xs space-y-4">
+            <button onclick="startGame(301)" class="btn-press w-full py-5 rounded-2xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-3xl font-display font-black text-white shadow-xl shadow-emerald-950/60 border border-emerald-400/30 flex items-center justify-center gap-3">
                 <span>301</span>
-                <span class="text-sm font-sans text-slate-400 font-normal tracking-widest uppercase">Başla</span>
+                <span class="text-xs font-sans font-semibold bg-black/30 px-2.5 py-1 rounded-full text-emerald-200">Hızlı</span>
             </button>
-            <button onclick="startGame(501)" class="btn-press w-full py-6 rounded-2xl bg-slate-800 border border-slate-700 shadow-xl shadow-black/50 text-3xl font-display text-emerald-400 flex flex-col items-center justify-center gap-2">
+            <button onclick="startGame(501)" class="btn-press w-full py-5 rounded-2xl bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-3xl font-display font-black text-white shadow-xl shadow-blue-950/60 border border-blue-400/30 flex items-center justify-center gap-3">
                 <span>501</span>
-                <span class="text-sm font-sans text-slate-400 font-normal tracking-widest uppercase">Başla</span>
+                <span class="text-xs font-sans font-semibold bg-black/30 px-2.5 py-1 rounded-full text-blue-200">Standart</span>
             </button>
         </div>
     </div>
 
-    <div id="game-view" class="hidden flex-1 flex flex-col h-full bg-slate-900">
+    <div id="game-view" class="hidden flex-1 flex flex-col h-full bg-slate-900 relative">
         
         <!-- Header -->
-        <div class="h-16 flex items-center justify-between px-4 bg-slate-800/50 border-b border-slate-800 shrink-0">
-            <button onclick="undoTurn()" class="btn-press p-2 text-slate-400 hover:text-white flex items-center gap-1">
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6" /></svg>
-                <span class="text-xs font-semibold uppercase tracking-wider">Turu Geri Al</span>
-            </button>
-            <div class="text-slate-500 font-bold tracking-widest text-sm" id="game-mode-label">501</div>
-            <button onclick="resetApp()" class="btn-press p-2 text-red-400 hover:text-red-300 flex items-center gap-1">
+        <div class="h-16 flex items-center justify-between px-3 bg-slate-800/50 border-b border-slate-800 shrink-0 relative z-30">
+            <div class="flex items-center gap-1.5">
+                <button onclick="undoTurn()" class="btn-press px-2.5 py-2 rounded-lg bg-slate-800 border border-slate-700 text-slate-300 hover:text-white flex items-center gap-1">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6" /></svg>
+                    <span class="text-xs font-semibold uppercase tracking-wider">Geri Al</span>
+                </button>
+                <button onclick="toggleHistory()" class="btn-press px-2.5 py-2 rounded-lg bg-slate-800 border border-slate-700 text-blue-400 hover:text-blue-300 flex items-center gap-1">
+                    <span class="text-xs font-semibold uppercase tracking-wider">Turlar</span>
+                    <span id="turn-count-badge" class="bg-blue-900/60 text-blue-300 text-[10px] px-1.5 py-0.5 rounded-full font-bold">0</span>
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" /></svg>
+                </button>
+            </div>
+            <div class="text-slate-500 font-bold tracking-widest text-xs sm:text-sm" id="game-mode-label">501</div>
+            <button onclick="resetApp()" class="btn-press px-2.5 py-2 rounded-lg bg-slate-800 border border-slate-700 text-red-400 hover:text-red-300 flex items-center gap-1">
                 <span class="text-xs font-semibold uppercase tracking-wider">Bitir</span>
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd" /></svg>
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd" /></svg>
             </button>
+        </div>
+
+        <!-- Top Dropdown History Panel -->
+        <div id="history-dropdown" class="hidden absolute top-16 left-0 right-0 bg-slate-800/95 backdrop-blur-md border-b border-slate-700 z-40 max-h-64 overflow-y-auto shadow-2xl p-4">
+            <div class="flex justify-between items-center mb-2 pb-2 border-b border-slate-700">
+                <span class="text-xs font-bold uppercase tracking-wider text-slate-400">Geçmiş Turlar</span>
+                <button onclick="toggleHistory()" class="text-slate-400 hover:text-white text-xs font-bold px-2 py-1 rounded bg-slate-700/50">Kapat ✕</button>
+            </div>
+            <div id="history-list" class="space-y-1.5 text-sm">
+                <div class="text-slate-500 text-center py-3 text-xs">Henüz tamamlanan tur yok</div>
+            </div>
         </div>
 
         <!-- Score Display Area -->
@@ -111,8 +133,8 @@
         <div class="h-[55dvh] max-h-[450px] w-full bg-slate-950 p-2 pb-8 md:p-3 md:pb-3 rounded-t-3xl shadow-[0_-15px_40px_rgba(0,0,0,0.4)] flex flex-col gap-2 shrink-0">
             <!-- Modifiers -->
             <div class="flex gap-2 h-12 shrink-0">
-                <button id="btn-mod-2" onclick="setModifier(2)" class="btn-press flex-1 bg-slate-800 rounded-xl border-2 border-slate-700 text-lg font-bold text-slate-300 flex items-center justify-center transition-colors">ÇİFT (x2)</button>
-                <button id="btn-mod-3" onclick="setModifier(3)" class="btn-press flex-1 bg-slate-800 rounded-xl border-2 border-slate-700 text-lg font-bold text-slate-300 flex items-center justify-center transition-colors">ÜÇLÜ (x3)</button>
+                <button id="btn-mod-2" onclick="applyMultiplier(2)" class="btn-press flex-1 bg-slate-800 rounded-xl border-2 border-slate-700 text-base sm:text-lg font-bold text-slate-300 flex items-center justify-center transition-colors">ÇİFT (x2)</button>
+                <button id="btn-mod-3" onclick="applyMultiplier(3)" class="btn-press flex-1 bg-slate-800 rounded-xl border-2 border-slate-700 text-base sm:text-lg font-bold text-slate-300 flex items-center justify-center transition-colors">ÜÇLÜ (x3)</button>
             </div>
             
             <!-- 1-20 Grid -->
@@ -149,10 +171,13 @@
         // State Variables
         let targetScore = 501;
         let turnStartScore = 501; // The score at the beginning of the current turn
-        let scoreHistory = []; // Stores the turnStartScore history
-        let currentDarts = []; // Array of { val, label, isDouble }
-        let activeModifier = 1; // 1 (Single), 2 (Double), 3 (Treble)
+        let scoreHistory = []; // Array of { startScore, darts, total, endScore, isBust }
+        let currentDarts = []; // Array of { baseVal, mult, val, label, isDouble }
+        let bustTimeout = null;
         const checkoutRoutes = {}; 
+
+        // Dart tahtasındaki açık (krem/beyaz) dilime denk gelen sayılar:
+        const lightNumbers = [1, 4, 6, 15, 17, 19, 16, 11, 9, 5];
 
         // Generates checkout routes from 170 down to 2 as arrays of dart strings
         function generateCheckouts() {
@@ -209,12 +234,22 @@
             }
         }
 
-        // Initialize 1-20 buttons dynamically
+        // Initialize 1-20 buttons dynamically with dartboard slice colors
         function initGrid() {
             const grid = document.getElementById('numbers-grid');
+            grid.innerHTML = '';
             for(let i=1; i<=20; i++) {
                 const btn = document.createElement('button');
-                btn.className = "btn-press bg-slate-800 rounded-xl text-xl font-bold text-white flex items-center justify-center border border-slate-700 hover:bg-slate-700 shadow-sm";
+                const isLight = lightNumbers.includes(i);
+                
+                if (isLight) {
+                    // Açık renkli dilimler (1, 4, 5, 6, 9, 11, 15, 16, 17, 19)
+                    btn.className = "btn-press bg-slate-600/90 hover:bg-slate-500 rounded-xl text-xl font-bold text-white flex items-center justify-center border border-slate-400/50 shadow-sm";
+                } else {
+                    // Koyu renkli dilimler (2, 3, 7, 8, 10, 12, 13, 14, 18, 20)
+                    btn.className = "btn-press bg-slate-900 hover:bg-slate-800 rounded-xl text-xl font-bold text-slate-200 flex items-center justify-center border border-slate-800 shadow-inner";
+                }
+                
                 btn.innerText = i;
                 btn.onclick = () => addDart(i);
                 grid.appendChild(btn);
@@ -222,103 +257,136 @@
         }
 
         function startGame(mode) {
+            clearTimeout(bustTimeout);
             targetScore = mode;
             turnStartScore = mode;
             scoreHistory = [];
             currentDarts = [];
-            activeModifier = 1;
             
             document.getElementById('setup-view').classList.add('hidden');
             document.getElementById('game-view').classList.remove('hidden');
             document.getElementById('win-view').classList.add('hidden');
+            document.getElementById('history-dropdown').classList.add('hidden');
             
             document.getElementById('game-mode-label').innerText = `${mode} MODU`;
             updateUI();
         }
 
-        function setModifier(mod) {
-            if (activeModifier === mod) activeModifier = 1; // Toggle off
-            else activeModifier = mod;
-            updateUI();
+        function toggleHistory() {
+            const dropdown = document.getElementById('history-dropdown');
+            dropdown.classList.toggle('hidden');
         }
 
         function addDart(baseVal) {
             if (currentDarts.length >= 3) return;
+            clearTimeout(bustTimeout);
 
-            let mult = activeModifier;
-            
-            // Validate special inputs
-            if (baseVal === 0) mult = 1;
-            if (baseVal === 25 && mult === 3) mult = 1; // No Treble 25
-            if (baseVal === 50) { baseVal = 25; mult = 2; } // 50 is always D25
+            let mult = 1;
+            let actualBase = baseVal;
 
-            let val = baseVal * mult;
+            if (baseVal === 50) {
+                actualBase = 25;
+                mult = 2;
+            }
+
+            let val = actualBase * mult;
             let isDouble = (mult === 2);
-            
-            let label = baseVal.toString();
-            if (baseVal === 0) label = "0";
-            else if (baseVal === 25 && mult === 2) label = "BULL";
-            else if (baseVal === 25 && mult === 1) label = "25";
-            else if (mult === 2) label = baseVal + "x2";
-            else if (mult === 3) label = baseVal + "x3";
+            let label = (baseVal === 50) ? "BULL" : val.toString();
 
-            let newDart = { val, label, isDouble };
+            let newDart = { baseVal: actualBase, mult, val, label, isDouble };
+            currentDarts.push(newDart);
             
-            // Live Bust Calculation
+            checkTurnState();
+        }
+
+        function applyMultiplier(targetMult) {
+            if (currentDarts.length === 0) {
+                showToast("Önce bir sayı seçin!", "bg-slate-700");
+                return;
+            }
+            
+            clearTimeout(bustTimeout);
+            let lastDart = currentDarts[currentDarts.length - 1];
+
+            if (lastDart.baseVal === 0) {
+                showToast("0 puan katlanamaz!", "bg-slate-700");
+                return;
+            }
+            if (lastDart.baseVal === 25 && targetMult === 3) {
+                showToast("25'in 3 katı yoktur!", "bg-orange-500");
+                return;
+            }
+
+            // Aynı çarpana tekrar basılırsa 1 kata geri döndür (toggle)
+            if (lastDart.mult === targetMult) {
+                lastDart.mult = 1;
+            } else {
+                lastDart.mult = targetMult;
+            }
+
+            lastDart.val = lastDart.baseVal * lastDart.mult;
+            lastDart.isDouble = (lastDart.mult === 2);
+            
+            if (lastDart.baseVal === 25 && lastDart.mult === 2) {
+                lastDart.label = "BULL";
+            } else {
+                // İstediğiniz gibi 5 -> x2 yapıldığında direkt 10 yazacak
+                lastDart.label = lastDart.val.toString();
+            }
+
+            checkTurnState();
+        }
+
+        function checkTurnState() {
+            updateUI();
+
             let currentTurnTotal = currentDarts.reduce((acc, d) => acc + d.val, 0);
-            let liveRemaining = turnStartScore - currentTurnTotal - val;
+            let liveRemaining = turnStartScore - currentTurnTotal;
+            let lastDart = currentDarts[currentDarts.length - 1];
 
             if (liveRemaining < 0 || liveRemaining === 1) {
-                // BUST
-                currentDarts.push(newDart);
-                activeModifier = 1;
-                updateUI();
+                // BUST - Kullanıcının hemen ardından x2/x3 basabilmesine fırsat tanımak için kısa süre bekle
                 showToast("Karavana (Bust)!", "bg-orange-500");
-                setTimeout(() => submitTurn(true), 1200);
+                bustTimeout = setTimeout(() => submitTurn(true), 1200);
                 return;
             }
 
             if (liveRemaining === 0) {
-                if (isDouble) {
+                if (lastDart && lastDart.isDouble) {
                     // WIN
-                    currentDarts.push(newDart);
-                    activeModifier = 1;
-                    updateUI();
-                    setTimeout(() => showWinScreen(), 500);
+                    bustTimeout = setTimeout(() => showWinScreen(), 500);
                     return;
                 } else {
-                    // BUST (Needs double to finish)
-                    currentDarts.push(newDart);
-                    activeModifier = 1;
-                    updateUI();
+                    // Tek sayı ile sıfırlandı ama belki hemen şimdi x2'ye basacak, değilse Bust:
                     showToast("Double ile bitilmeli!", "bg-red-500");
-                    setTimeout(() => submitTurn(true), 1200);
+                    bustTimeout = setTimeout(() => submitTurn(true), 1400);
                     return;
                 }
             }
-
-            // Normal Hit
-            currentDarts.push(newDart);
-            activeModifier = 1;
-            updateUI();
         }
 
         function submitTurn(isBust = false) {
+            clearTimeout(bustTimeout);
             if (!isBust && currentDarts.length === 0) return; 
             
-            scoreHistory.push(turnStartScore);
+            let roundScore = currentDarts.reduce((acc, d) => acc + d.val, 0);
+            let endScore = isBust ? turnStartScore : (turnStartScore - roundScore);
+
+            scoreHistory.push({
+                startScore: turnStartScore,
+                darts: currentDarts.map(d => ({ ...d })),
+                total: isBust ? 0 : roundScore,
+                endScore: endScore,
+                isBust: isBust
+            });
             
-            if (!isBust) {
-                let roundScore = currentDarts.reduce((acc, d) => acc + d.val, 0);
-                turnStartScore -= roundScore;
-            }
-            
+            turnStartScore = endScore;
             currentDarts = [];
-            activeModifier = 1;
             updateUI();
         }
 
         function undoLastDart() {
+            clearTimeout(bustTimeout);
             if (currentDarts.length > 0) {
                 currentDarts.pop();
                 updateUI();
@@ -326,17 +394,15 @@
         }
 
         function undoTurn() {
+            clearTimeout(bustTimeout);
             if (currentDarts.length > 0) {
-                // If there are darts in current turn, "Turu Geri Al" clears them first to retry the turn
                 currentDarts = [];
-                activeModifier = 1;
                 updateUI();
                 showToast("Oklar Temizlendi", "bg-slate-700");
             } else if (scoreHistory.length > 0) {
-                // If turn is fresh, revert to previous turn
-                turnStartScore = scoreHistory.pop();
+                const lastTurn = scoreHistory.pop();
+                turnStartScore = lastTurn.startScore;
                 currentDarts = [];
-                activeModifier = 1;
                 updateUI();
                 showToast("Önceki Tura Dönüldü", "bg-slate-700");
             } else {
@@ -354,31 +420,68 @@
             // Dart Slots Display
             for (let i = 1; i <= 3; i++) {
                 const el = document.getElementById(`dart-${i}`);
-                if (currentDarts[i - 1]) {
-                    el.innerText = currentDarts[i - 1].label;
-                    el.classList.remove('text-slate-600', 'border-slate-700/50', 'bg-slate-800/80');
-                    el.classList.add('text-white', 'border-blue-500', 'bg-blue-900/30');
+                const dart = currentDarts[i - 1];
+                if (dart) {
+                    el.innerText = dart.label;
+                    el.className = "flex-1 h-14 rounded-xl border-2 flex items-center justify-center text-2xl font-bold font-display transition-colors ";
+                    if (dart.mult === 3) {
+                        el.className += "text-emerald-300 border-emerald-500 bg-emerald-900/30";
+                    } else if (dart.mult === 2) {
+                        el.className += "text-blue-300 border-blue-500 bg-blue-900/30";
+                    } else {
+                        el.className += "text-white border-slate-500 bg-slate-800";
+                    }
                 } else {
                     el.innerText = "-";
-                    el.classList.remove('text-white', 'border-blue-500', 'bg-blue-900/30');
-                    el.classList.add('text-slate-600', 'border-slate-700/50', 'bg-slate-800/80');
+                    el.className = "flex-1 h-14 bg-slate-800/80 rounded-xl border-2 border-slate-700/50 flex items-center justify-center text-2xl font-bold font-display text-slate-600 transition-colors";
                 }
             }
 
-            // Modifier Buttons Styling
+            // Son atılan okun çarpanına göre ÇİFT / ÜÇLÜ butonlarını vurgula
             const btnMod2 = document.getElementById('btn-mod-2');
             const btnMod3 = document.getElementById('btn-mod-3');
+            const lastDart = currentDarts[currentDarts.length - 1];
+            const activeMult = lastDart ? lastDart.mult : 1;
             
-            if(activeModifier === 2) {
-                btnMod2.className = "btn-press flex-1 bg-blue-600 rounded-xl border-2 border-blue-400 text-lg font-bold text-white flex items-center justify-center transition-colors shadow-lg shadow-blue-900/50";
+            if(activeMult === 2) {
+                btnMod2.className = "btn-press flex-1 bg-blue-600 rounded-xl border-2 border-blue-400 text-base sm:text-lg font-bold text-white flex items-center justify-center transition-colors shadow-lg shadow-blue-900/50";
             } else {
-                btnMod2.className = "btn-press flex-1 bg-slate-800 rounded-xl border-2 border-slate-700 text-lg font-bold text-slate-300 flex items-center justify-center transition-colors";
+                btnMod2.className = "btn-press flex-1 bg-slate-800 rounded-xl border-2 border-slate-700 text-base sm:text-lg font-bold text-slate-300 flex items-center justify-center transition-colors";
             }
 
-            if(activeModifier === 3) {
-                btnMod3.className = "btn-press flex-1 bg-emerald-600 rounded-xl border-2 border-emerald-400 text-lg font-bold text-white flex items-center justify-center transition-colors shadow-lg shadow-emerald-900/50";
+            if(activeMult === 3) {
+                btnMod3.className = "btn-press flex-1 bg-emerald-600 rounded-xl border-2 border-emerald-400 text-base sm:text-lg font-bold text-white flex items-center justify-center transition-colors shadow-lg shadow-emerald-900/50";
             } else {
-                btnMod3.className = "btn-press flex-1 bg-slate-800 rounded-xl border-2 border-slate-700 text-lg font-bold text-slate-300 flex items-center justify-center transition-colors";
+                btnMod3.className = "btn-press flex-1 bg-slate-800 rounded-xl border-2 border-slate-700 text-base sm:text-lg font-bold text-slate-300 flex items-center justify-center transition-colors";
+            }
+
+            // Tur Geçmişini (Dropdown) Güncelle
+            document.getElementById('turn-count-badge').innerText = scoreHistory.length;
+            const historyList = document.getElementById('history-list');
+            if (scoreHistory.length === 0) {
+                historyList.innerHTML = '<div class="text-slate-500 text-center py-3 text-xs">Henüz tamamlanan tur yok</div>';
+            } else {
+                historyList.innerHTML = scoreHistory.map((turn, idx) => {
+                    const dartsStr = turn.darts.map(d => {
+                        if (d.mult === 2 && d.baseVal === 25) return 'BULL(50)';
+                        if (d.mult > 1) return `${d.val} <span class="text-[10px] text-slate-400">(${d.baseVal}x${d.mult})</span>`;
+                        return d.val;
+                    }).join(' , ');
+
+                    return `<div class="flex items-center justify-between bg-slate-900/90 px-3 py-2 rounded-lg border border-slate-700/60">
+                        <div class="flex items-center gap-2">
+                            <span class="text-xs font-bold text-slate-500 w-12">${idx + 1}. Tur</span>
+                            <span class="text-xs font-mono text-slate-200">${dartsStr}</span>
+                        </div>
+                        <div class="flex items-center gap-3">
+                            ${turn.isBust 
+                                ? '<span class="text-xs font-bold text-orange-400 bg-orange-950/60 px-2 py-0.5 rounded">BUST</span>' 
+                                : `<span class="text-xs font-bold text-emerald-400">-${turn.total}</span>`
+                            }
+                            <span class="text-sm font-display font-bold text-white w-10 text-right">${turn.endScore}</span>
+                        </div>
+                    </div>`;
+                }).reverse().join('');
             }
 
             // Checkout UI updating dynamically based on remaining darts
