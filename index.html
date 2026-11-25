@@ -5,280 +5,517 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Dart Skor</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&family=Orbitron:wght@700;900&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&family=Orbitron:wght@700;900&display=swap" rel="stylesheet">
     <style>
         body {
             font-family: 'Inter', sans-serif;
             background-color: #0f172a; /* Tailwind slate-900 */
             color: #f8fafc; /* Tailwind slate-50 */
-            overscroll-behavior: none; /* Prevents pull-to-refresh on mobile */
-            touch-action: manipulation; /* Improves touch responsiveness */
+            overscroll-behavior: none; /* Mobilde aşağı çekip yenilemeyi engeller */
+            touch-action: manipulation; /* Dokunmatik tepkisini hızlandırır */
         }
         .font-display {
             font-family: 'Orbitron', sans-serif;
         }
-        /* Disable text selection for touch elements */
+        /* Dokunmatik öğelerde metin seçimini engelle */
         .no-select {
             -webkit-user-select: none;
             user-select: none;
         }
-        /* Tactile feedback for buttons */
+        /* Butonlara dokunma hissi */
         .btn-press:active {
             transform: scale(0.95);
             transition: transform 0.1s ease;
         }
-        
-        /* Toast Animation */
+        /* Bildirim (Toast) animasyonu */
         @keyframes fadeInOut {
             0% { opacity: 0; transform: translateY(-20px) translateX(-50%); }
-            10% { opacity: 1; transform: translateY(0) translateX(-50%); }
-            90% { opacity: 1; transform: translateY(0) translateX(-50%); }
+            12% { opacity: 1; transform: translateY(0) translateX(-50%); }
+            88% { opacity: 1; transform: translateY(0) translateX(-50%); }
             100% { opacity: 0; transform: translateY(-20px) translateX(-50%); }
         }
         .toast-anim {
-            animation: fadeInOut 2s forwards;
+            animation: fadeInOut 1.9s forwards;
+        }
+        /* 3 ok tamamlandığında TURU GEÇ butonu için vurgu */
+        @keyframes softPulse {
+            0%, 100% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.55); }
+            50% { box-shadow: 0 0 0 7px rgba(16, 185, 129, 0); }
+        }
+        .ready-pulse {
+            animation: softPulse 1.5s infinite;
         }
     </style>
 </head>
-<body class="h-[100dvh] w-screen overflow-hidden flex flex-col no-select">
+<body class="h-[100dvh] w-screen overflow-hidden flex flex-col no-select bg-slate-900">
 
-    <div id="toast" class="fixed top-4 left-1/2 hidden z-50 px-6 py-3 rounded-full text-white font-bold shadow-lg text-lg pointer-events-none transform -translate-x-1/2">
+    <!-- Bildirim (Toast) -->
+    <div id="toast" class="fixed top-4 left-1/2 hidden z-50 px-5 py-2.5 rounded-full text-white font-bold shadow-xl text-sm sm:text-base pointer-events-none transform -translate-x-1/2 whitespace-nowrap">
+    </div>
+
+    <!-- Çıkış Onay Penceresi (confirm() yerine özel modal) -->
+    <div id="exit-modal" class="hidden fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-center justify-center p-5">
+        <div class="bg-slate-800 border border-slate-700 rounded-2xl p-5 w-full max-w-xs shadow-2xl space-y-4">
+            <div class="text-center space-y-1">
+                <h3 class="text-lg font-bold text-white">Oyunu Bitir?</h3>
+                <p class="text-xs text-slate-400">Mevcut skorlar sıfırlanıp ana menüye dönülecek.</p>
+            </div>
+            <div class="flex gap-2.5">
+                <button type="button" onclick="closeExitModal()" class="btn-press flex-1 py-2.5 rounded-xl bg-slate-700 text-slate-200 font-semibold text-sm">Devam Et</button>
+                <button type="button" onclick="confirmResetApp()" class="btn-press flex-1 py-2.5 rounded-xl bg-red-600 text-white font-semibold text-sm shadow-lg shadow-red-900/40">Çıkış Yap</button>
+            </div>
+        </div>
     </div>
 
     <!-- Setup View (Başlangıç Ekranı) -->
-    <div id="setup-view" class="flex-1 flex flex-col items-center justify-center p-6 space-y-10 bg-slate-900">
-        <div class="text-center space-y-2">
-            <div class="inline-flex items-center justify-center w-20 h-20 rounded-full bg-red-600/20 border-2 border-red-500 mb-2 shadow-lg shadow-red-900/30">
-                <span class="text-4xl">🎯</span>
+    <div id="setup-view" class="flex-1 flex flex-col items-center justify-center px-5 py-4 pb-16 space-y-5 bg-slate-900 overflow-hidden">
+        <div class="text-center space-y-1.5">
+            <div class="inline-flex items-center justify-center w-16 h-16 rounded-full bg-red-600/20 border-2 border-red-500 mb-1 shadow-lg shadow-red-900/30">
+                <span class="text-3xl">🎯</span>
             </div>
-            <h1 class="text-5xl font-display font-black tracking-wider text-white">DART SKOR</h1>
-            <p class="text-slate-400 text-sm">Başlamak için oyun modunu seçin</p>
+            <h1 class="text-4xl font-display font-black tracking-wider text-white">DART SKOR</h1>
+            <p class="text-slate-400 text-xs sm:text-sm">Oyuncu sayısını ve oyun modunu seçin</p>
         </div>
 
-        <div class="w-full max-w-xs space-y-4">
-            <button onclick="startGame(301)" class="btn-press w-full py-5 rounded-2xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-3xl font-display font-black text-white shadow-xl shadow-emerald-950/60 border border-emerald-400/30 flex items-center justify-center gap-3">
-                <span>301</span>
-                <span class="text-xs font-sans font-semibold bg-black/30 px-2.5 py-1 rounded-full text-emerald-200">Hızlı</span>
-            </button>
-            <button onclick="startGame(501)" class="btn-press w-full py-5 rounded-2xl bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-3xl font-display font-black text-white shadow-xl shadow-blue-950/60 border border-blue-400/30 flex items-center justify-center gap-3">
-                <span>501</span>
-                <span class="text-xs font-sans font-semibold bg-black/30 px-2.5 py-1 rounded-full text-blue-200">Standart</span>
-            </button>
+        <!-- Oyuncu Sayısı Seçimi -->
+        <div class="w-full max-w-xs space-y-3">
+            <div class="text-[11px] font-bold uppercase tracking-widest text-slate-400 text-center">Oyuncu Sayısı</div>
+            <div class="grid grid-cols-3 gap-2 bg-slate-950/80 p-1.5 rounded-2xl border border-slate-800">
+                <button type="button" id="pc-btn-1" onclick="selectPlayerCount(1)" class="btn-press py-2.5 rounded-xl text-sm font-bold transition-all bg-blue-600 text-white shadow-md">1 Kişi</button>
+                <button type="button" id="pc-btn-2" onclick="selectPlayerCount(2)" class="btn-press py-2.5 rounded-xl text-sm font-bold transition-all text-slate-400 hover:text-white">2 Kişi</button>
+                <button type="button" id="pc-btn-3" onclick="selectPlayerCount(3)" class="btn-press py-2.5 rounded-xl text-sm font-bold transition-all text-slate-400 hover:text-white">3 Kişi</button>
+            </div>
+
+            <!-- İsteğe Bağlı Oyuncu İsimleri (2 ve 3 kişide görünür) -->
+            <div id="player-names-container" class="hidden space-y-2 pt-1">
+                <div id="name-row-0" class="flex items-center gap-2 bg-slate-800/80 border border-emerald-500/40 rounded-xl px-3 py-2">
+                    <span class="w-2.5 h-2.5 rounded-full bg-emerald-400 shrink-0"></span>
+                    <input id="player-name-0" type="text" maxlength="12" placeholder="Oyuncu 1" class="bg-transparent text-sm text-white placeholder-slate-400 w-full outline-none font-semibold">
+                </div>
+                <div id="name-row-1" class="flex items-center gap-2 bg-slate-800/80 border border-sky-500/40 rounded-xl px-3 py-2">
+                    <span class="w-2.5 h-2.5 rounded-full bg-sky-400 shrink-0"></span>
+                    <input id="player-name-1" type="text" maxlength="12" placeholder="Oyuncu 2" class="bg-transparent text-sm text-white placeholder-slate-400 w-full outline-none font-semibold">
+                </div>
+                <div id="name-row-2" class="hidden flex items-center gap-2 bg-slate-800/80 border border-amber-500/40 rounded-xl px-3 py-2">
+                    <span class="w-2.5 h-2.5 rounded-full bg-amber-400 shrink-0"></span>
+                    <input id="player-name-2" type="text" maxlength="12" placeholder="Oyuncu 3" class="bg-transparent text-sm text-white placeholder-slate-400 w-full outline-none font-semibold">
+                </div>
+            </div>
+        </div>
+
+        <!-- Oyun Modu Seçimi -->
+        <div class="w-full max-w-xs space-y-3">
+            <div class="grid grid-cols-2 gap-3">
+                <button type="button" onclick="startGame(301)" class="btn-press py-4 rounded-2xl bg-gradient-to-br from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white shadow-xl shadow-emerald-950/60 border border-emerald-400/30 flex flex-col items-center justify-center gap-1">
+                    <span class="text-3xl font-display font-black">301</span>
+                    <span class="text-[11px] font-semibold bg-black/25 px-2.5 py-0.5 rounded-full text-emerald-100">Hızlı Oyun</span>
+                </button>
+                <button type="button" onclick="startGame(501)" class="btn-press py-4 rounded-2xl bg-gradient-to-br from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white shadow-xl shadow-blue-950/60 border border-blue-400/30 flex flex-col items-center justify-center gap-1">
+                    <span class="text-3xl font-display font-black">501</span>
+                    <span class="text-[11px] font-semibold bg-black/25 px-2.5 py-0.5 rounded-full text-blue-100">Standart</span>
+                </button>
+            </div>
         </div>
     </div>
 
-    <div id="game-view" class="hidden flex-1 flex flex-col h-full bg-slate-900 relative">
-        
-        <!-- Header -->
-        <div class="h-16 flex items-center justify-between px-3 bg-slate-800/50 border-b border-slate-800 shrink-0 relative z-30">
-            <div class="flex items-center gap-1.5">
-                <button onclick="undoTurn()" class="btn-press px-2.5 py-2 rounded-lg bg-slate-800 border border-slate-700 text-slate-300 hover:text-white flex items-center gap-1">
-                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6" /></svg>
-                    <span class="text-xs font-semibold uppercase tracking-wider">Geri Al</span>
-                </button>
-                <button onclick="toggleHistory()" class="btn-press px-2.5 py-2 rounded-lg bg-slate-800 border border-slate-700 text-blue-400 hover:text-blue-300 flex items-center gap-1">
-                    <span class="text-xs font-semibold uppercase tracking-wider">Turlar</span>
-                    <span id="turn-count-badge" class="bg-blue-900/60 text-blue-300 text-[10px] px-1.5 py-0.5 rounded-full font-bold">0</span>
-                    <svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" /></svg>
-                </button>
-            </div>
-            <div class="text-slate-500 font-bold tracking-widest text-xs sm:text-sm" id="game-mode-label">501</div>
-            <button onclick="resetApp()" class="btn-press px-2.5 py-2 rounded-lg bg-slate-800 border border-slate-700 text-red-400 hover:text-red-300 flex items-center gap-1">
-                <span class="text-xs font-semibold uppercase tracking-wider">Bitir</span>
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd" /></svg>
-            </button>
-        </div>
+    <!-- Game View (Oyun Ekranı) -->
+    <div id="game-view" class="hidden flex-1 flex flex-col h-full bg-slate-900 relative overflow-hidden">
 
-        <!-- Top Dropdown History Panel -->
-        <div id="history-dropdown" class="hidden absolute top-16 left-0 right-0 bg-slate-800/95 backdrop-blur-md border-b border-slate-700 z-40 max-h-64 overflow-y-auto shadow-2xl p-4">
+        <!-- Alt Çubuktan Yukarı Açılan Tur Geçmişi Penceresi -->
+        <div id="history-dropdown" class="hidden absolute bottom-[calc(3.25rem+env(safe-area-inset-bottom))] left-0 right-0 bg-slate-800/95 backdrop-blur-md border-t border-slate-700 rounded-t-2xl z-40 max-h-[58dvh] overflow-y-auto shadow-[0_-15px_40px_rgba(0,0,0,0.6)] p-3.5">
             <div class="flex justify-between items-center mb-2 pb-2 border-b border-slate-700">
                 <span class="text-xs font-bold uppercase tracking-wider text-slate-400">Geçmiş Turlar</span>
-                <button onclick="toggleHistory()" class="text-slate-400 hover:text-white text-xs font-bold px-2 py-1 rounded bg-slate-700/50">Kapat ✕</button>
+                <button type="button" onclick="toggleHistory()" class="text-slate-300 hover:text-white text-xs font-bold px-2.5 py-1 rounded-lg bg-slate-700/70">Kapat ✕</button>
             </div>
             <div id="history-list" class="space-y-1.5 text-sm">
                 <div class="text-slate-500 text-center py-3 text-xs">Henüz tamamlanan tur yok</div>
             </div>
         </div>
 
-        <!-- Score Display Area -->
-        <div class="flex-1 flex flex-col items-center justify-start pt-4 relative px-4 w-full">
-            <div class="flex flex-col items-center">
-                <div class="text-slate-400 text-xs font-semibold uppercase tracking-widest mb-1">Kalan Skor</div>
-                <div id="current-score" class="text-7xl md:text-8xl font-display font-black text-white tracking-tighter drop-shadow-xl transition-all duration-300">
-                    501
-                </div>
+        <!-- Skorların Hemen Üstünde İnce Bilgi & Küçük Bitir Satırı -->
+        <div class="flex items-center justify-between px-3 pt-2 pb-0.5 w-full max-w-md mx-auto shrink-0">
+            <span id="game-mode-label" class="text-[11px] font-bold tracking-widest uppercase text-slate-400">501 MODU</span>
+            <button type="button" onclick="requestExit()" aria-label="Oyunu Bitir" class="btn-press px-2 py-0.5 rounded-lg bg-slate-800/80 border border-slate-700/80 text-red-400/90 hover:text-red-300 hover:bg-slate-800 flex items-center gap-1 transition-colors">
+                <span class="text-[11px] font-semibold tracking-wide">Bitir</span>
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd" /></svg>
+            </button>
+        </div>
+
+        <!-- Skor, Bitiriş Senaryoları ve 3 Ok Alanı -->
+        <div class="flex-1 min-h-0 flex flex-col items-center justify-between pt-1 pb-2 px-3 w-full gap-1 overflow-hidden">
+            
+            <!-- Dinamik Skor Alanı (1 kişi: Büyük Skor | 2-3 kişi: Yan Yana Kartlar) -->
+            <div id="scoreboard-container" class="w-full max-w-md flex flex-col items-center justify-center shrink-0">
+                <!-- JavaScript ile doldurulacak -->
             </div>
 
-            <!-- Checkout Suggestion -->
-            <div id="checkout-container" class="min-h-[3rem] mt-2 mb-4 flex flex-col items-center justify-center opacity-0 transition-opacity duration-300 z-10 w-full">
-                <div id="checkout-routes-wrapper" class="flex flex-col gap-1.5 w-full items-center justify-center">
+            <!-- Olası Bitiriş Senaryoları (En fazla 2 öneri) -->
+            <div id="checkout-container" class="min-h-[1.75rem] flex flex-col items-center justify-center opacity-0 transition-opacity duration-200 z-10 w-full max-w-md shrink-0">
+                <div id="checkout-routes-wrapper" class="flex flex-col gap-1 w-full items-center justify-center">
                     <!-- Olası senaryolar buraya eklenecek -->
                 </div>
             </div>
-            
-            <div class="flex-1 w-full min-h-[0.5rem]"></div> <!-- Spacer -->
 
-            <!-- Current Darts Display -->
-            <div class="flex gap-2 md:gap-3 w-full max-w-sm mb-4">
-                <div id="dart-1" class="flex-1 h-14 bg-slate-800/80 rounded-xl border-2 border-slate-700/50 flex items-center justify-center text-2xl font-bold font-display text-slate-600 transition-colors">-</div>
-                <div id="dart-2" class="flex-1 h-14 bg-slate-800/80 rounded-xl border-2 border-slate-700/50 flex items-center justify-center text-2xl font-bold font-display text-slate-600 transition-colors">-</div>
-                <div id="dart-3" class="flex-1 h-14 bg-slate-800/80 rounded-xl border-2 border-slate-700/50 flex items-center justify-center text-2xl font-bold font-display text-slate-600 transition-colors">-</div>
-                <button onclick="undoLastDart()" class="btn-press w-14 h-14 bg-slate-800 text-red-400 rounded-xl border border-slate-700 shadow-md flex items-center justify-center hover:bg-slate-700">
-                    <svg xmlns="http://www.w3.org/2000/svg" class="h-7 w-7" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2M3 12l6.414 6.414a2 2 0 001.414.586H19a2 2 0 002-2V7a2 2 0 00-2-2h-8.172a2 2 0 00-1.414.586L3 12z" /></svg>
+            <!-- Aktif Tur ve 3 Ok Gösterimi -->
+            <div class="w-full max-w-md space-y-1 shrink-0">
+                <div class="flex items-center justify-between px-1">
+                    <div id="active-turn-label" class="flex items-center gap-1.5 text-xs font-bold text-slate-300">
+                        <span id="active-turn-dot" class="w-2 h-2 rounded-full bg-emerald-400"></span>
+                        <span id="active-turn-name">Bu Turdaki Oklar</span>
+                    </div>
+                    <div class="text-xs font-semibold text-slate-400">
+                        Tur Toplamı: <span id="current-turn-sum" class="font-display font-bold text-white text-sm ml-0.5">0</span>
+                    </div>
+                </div>
+
+                <!-- 3 Ok Kutusu + Son Oku Silme Tuşu -->
+                <div class="flex gap-2 w-full">
+                    <div id="dart-1" class="flex-1 h-10 sm:h-11 bg-slate-800/80 rounded-xl border-2 border-slate-700/50 flex items-center justify-center text-lg sm:text-xl font-bold font-display text-slate-600 transition-colors">-</div>
+                    <div id="dart-2" class="flex-1 h-10 sm:h-11 bg-slate-800/80 rounded-xl border-2 border-slate-700/50 flex items-center justify-center text-lg sm:text-xl font-bold font-display text-slate-600 transition-colors">-</div>
+                    <div id="dart-3" class="flex-1 h-10 sm:h-11 bg-slate-800/80 rounded-xl border-2 border-slate-700/50 flex items-center justify-center text-lg sm:text-xl font-bold font-display text-slate-600 transition-colors">-</div>
+                    <button type="button" onclick="undoLastDart()" aria-label="Son oku sil" class="btn-press w-10 sm:w-11 h-10 sm:h-11 bg-slate-800 text-red-400 rounded-xl border border-slate-700 shadow-md flex items-center justify-center hover:bg-slate-700">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 sm:h-6 sm:w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2M3 12l6.414 6.414a2 2 0 001.414.586H19a2 2 0 002-2V7a2 2 0 00-2-2h-8.172a2 2 0 00-1.414.586L3 12z" /></svg>
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Tuş Takımı (Çarpanlar, 1-20, Özel Tuşlar ve TURU GEÇ) -->
+        <div class="h-[44dvh] max-h-[380px] min-h-[245px] w-full bg-slate-950 px-2 pt-2 pb-1.5 md:px-3 md:pt-2.5 rounded-t-3xl shadow-[0_-15px_40px_rgba(0,0,0,0.45)] border-t border-slate-800/80 flex flex-col gap-1.5 shrink-0">
+            <!-- Çarpanlar (Önce sayıya, sonra x2/x3 tuşuna basılır) -->
+            <div class="flex gap-2 h-9 sm:h-10 shrink-0">
+                <button type="button" id="btn-mod-2" onclick="applyMultiplier(2)" class="btn-press flex-1 bg-slate-800 rounded-xl border-2 border-slate-700 text-sm sm:text-base font-bold text-slate-300 flex items-center justify-center transition-colors">ÇİFT (x2)</button>
+                <button type="button" id="btn-mod-3" onclick="applyMultiplier(3)" class="btn-press flex-1 bg-slate-800 rounded-xl border-2 border-slate-700 text-sm sm:text-base font-bold text-slate-300 flex items-center justify-center transition-colors">ÜÇLÜ (x3)</button>
+            </div>
+            
+            <!-- 1-20 Sayı Izgarası -->
+            <div class="grid grid-cols-5 gap-1.5 sm:gap-2 flex-1 min-h-0" id="numbers-grid">
+                <!-- JavaScript ile 1-20 arası sayılar oluşturulacak -->
+            </div>
+            
+            <!-- 0, 25, BULL ve TURU GEÇ -->
+            <div class="grid grid-cols-5 gap-1.5 sm:gap-2 h-10 sm:h-11 shrink-0">
+                <button type="button" onclick="addDart(0)" class="btn-press bg-slate-800 rounded-xl text-lg sm:text-xl font-bold text-slate-400 flex flex-col items-center justify-center border border-slate-700">0</button>
+                <button type="button" onclick="addDart(25)" class="btn-press bg-emerald-900/60 rounded-xl text-lg sm:text-xl font-bold text-emerald-400 flex items-center justify-center border border-emerald-800/50">25</button>
+                <button type="button" onclick="addDart(50)" class="btn-press bg-red-900/60 rounded-xl text-sm sm:text-base font-bold text-red-400 flex items-center justify-center border border-red-800/50">BULL</button>
+                <button type="button" id="btn-submit-turn" onclick="submitTurn()" class="btn-press col-span-2 bg-blue-600 hover:bg-blue-500 rounded-xl text-base sm:text-lg font-bold text-white flex items-center justify-center gap-1.5 shadow-lg shadow-blue-900/50 border border-blue-500 transition-all">
+                    <span>TURU GEÇ</span>
                 </button>
             </div>
         </div>
 
-        <!-- Keypad Area (1-20, Modifiers, Bulls) -->
-        <div class="h-[55dvh] max-h-[450px] w-full bg-slate-950 p-2 pb-8 md:p-3 md:pb-3 rounded-t-3xl shadow-[0_-15px_40px_rgba(0,0,0,0.4)] flex flex-col gap-2 shrink-0">
-            <!-- Modifiers -->
-            <div class="flex gap-2 h-12 shrink-0">
-                <button id="btn-mod-2" onclick="applyMultiplier(2)" class="btn-press flex-1 bg-slate-800 rounded-xl border-2 border-slate-700 text-base sm:text-lg font-bold text-slate-300 flex items-center justify-center transition-colors">ÇİFT (x2)</button>
-                <button id="btn-mod-3" onclick="applyMultiplier(3)" class="btn-press flex-1 bg-slate-800 rounded-xl border-2 border-slate-700 text-base sm:text-lg font-bold text-slate-300 flex items-center justify-center transition-colors">ÜÇLÜ (x3)</button>
-            </div>
-            
-            <!-- 1-20 Grid -->
-            <div class="grid grid-cols-5 gap-2 flex-1" id="numbers-grid">
-                <!-- Javascript will populate 1-20 here -->
-            </div>
-            
-            <!-- Special Keys & Submit -->
-            <div class="grid grid-cols-5 gap-2 h-14 shrink-0">
-                <button onclick="addDart(0)" class="btn-press bg-slate-800 rounded-xl text-xl font-bold text-slate-400 flex flex-col items-center justify-center border border-slate-700">0</button>
-                <button onclick="addDart(25)" class="btn-press bg-emerald-900/60 rounded-xl text-xl font-bold text-emerald-400 flex items-center justify-center border border-emerald-800/50">25</button>
-                <button onclick="addDart(50)" class="btn-press bg-red-900/60 rounded-xl text-base font-bold text-red-400 flex items-center justify-center border border-red-800/50">BULL</button>
-                <button onclick="submitTurn()" class="btn-press col-span-2 bg-blue-600 hover:bg-blue-500 rounded-xl text-lg font-bold text-white flex items-center justify-center shadow-lg shadow-blue-900/50 border border-blue-500">
-                    TURU GEÇ
-                </button>
-            </div>
+        <!-- Alt Kontrol Çubuğu (Geri Al & Turlar — aynı zamanda alt tarayıcı çubuğuna karşı güvenli tampon) -->
+        <div class="min-h-[3.25rem] flex items-center justify-between px-3 py-1.5 pb-[calc(0.5rem+env(safe-area-inset-bottom))] bg-slate-950 border-t border-slate-800/90 shrink-0 relative z-30">
+            <button type="button" onclick="undoTurn()" class="btn-press px-3 py-1.5 rounded-xl bg-slate-800 border border-slate-700 text-slate-300 hover:text-white flex items-center gap-1.5">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6" /></svg>
+                <span class="text-xs font-semibold uppercase tracking-wider">Turu Geri Al</span>
+            </button>
+            <button type="button" onclick="toggleHistory()" class="btn-press px-3 py-1.5 rounded-xl bg-slate-800 border border-slate-700 text-blue-400 hover:text-blue-300 flex items-center gap-1.5">
+                <span class="text-xs font-semibold uppercase tracking-wider">Turlar</span>
+                <span id="turn-count-badge" class="bg-blue-900/70 text-blue-200 text-[10px] px-1.5 py-0.5 rounded-full font-bold">0</span>
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 15l7-7 7 7" /></svg>
+            </button>
         </div>
     </div>
 
-    <div id="win-view" class="hidden flex-1 flex flex-col items-center justify-center p-6 space-y-8 bg-slate-900 z-40 absolute inset-0">
-        <div class="text-center">
-            <h2 class="text-6xl font-display font-black text-transparent bg-clip-text bg-gradient-to-b from-yellow-300 to-yellow-600 mb-4 animate-bounce">OYUN BİTTİ</h2>
-            <p class="text-2xl text-slate-300">Tebrikler, Kazandınız!</p>
+    <!-- Win View (Kazanma Ekranı) -->
+    <div id="win-view" class="hidden flex-1 flex flex-col items-center justify-center p-6 pb-16 space-y-6 bg-slate-900 z-40 absolute inset-0 overflow-hidden">
+        <div class="text-center space-y-2">
+            <div class="text-5xl animate-bounce">🏆</div>
+            <h2 class="text-4xl sm:text-5xl font-display font-black text-transparent bg-clip-text bg-gradient-to-b from-yellow-300 to-amber-500">OYUN BİTTİ</h2>
+            <p id="winner-text" class="text-xl sm:text-2xl font-bold text-white">Tebrikler, Kazandınız!</p>
+        </div>
+
+        <!-- Maç Özeti Tablosu -->
+        <div id="win-summary" class="w-full max-w-sm bg-slate-800/80 border border-slate-700 rounded-2xl p-3.5 space-y-2">
+            <!-- JS ile doldurulacak -->
         </div>
         
-        <div class="w-full max-w-sm mt-12">
-            <button onclick="resetApp()" class="btn-press w-full py-5 rounded-xl bg-blue-600 text-xl font-bold text-white shadow-lg shadow-blue-900/50">
-                Yeni Oyun Oyna
+        <div class="w-full max-w-sm flex flex-col gap-2.5 pt-2">
+            <button type="button" onclick="rematchGame()" class="btn-press w-full py-4 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-lg font-bold text-white shadow-lg shadow-emerald-950/60 border border-emerald-400/30">
+                Aynı Ayarlarla Tekrar Oyna
+            </button>
+            <button type="button" onclick="confirmResetApp()" class="btn-press w-full py-3.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-base font-semibold text-slate-300 border border-slate-700">
+                Ana Menüye Dön
             </button>
         </div>
     </div>
 
     <script>
-        // State Variables
-        let targetScore = 501;
-        let turnStartScore = 501; // The score at the beginning of the current turn
-        let scoreHistory = []; // Array of { startScore, darts, total, endScore, isBust }
-        let currentDarts = []; // Array of { baseVal, mult, val, label, isDouble }
-        let bustTimeout = null;
-        const checkoutRoutes = {}; 
+        // Oyuncu Renk Temaları (1., 2. ve 3. oyuncu için ayırt edici renkler)
+        const PLAYER_THEMES = [
+            {
+                dot: 'bg-emerald-400',
+                text: 'text-emerald-400',
+                badgeBg: 'bg-emerald-950/80 text-emerald-300 border-emerald-500/40',
+                cardActive: 'bg-emerald-950/35 border-emerald-400 shadow-[0_0_18px_rgba(16,185,129,0.22)] ring-1 ring-emerald-400/40',
+                pill: 'bg-emerald-500 text-slate-950'
+            },
+            {
+                dot: 'bg-sky-400',
+                text: 'text-sky-400',
+                badgeBg: 'bg-sky-950/80 text-sky-300 border-sky-500/40',
+                cardActive: 'bg-sky-950/35 border-sky-400 shadow-[0_0_18px_rgba(56,189,248,0.22)] ring-1 ring-sky-400/40',
+                pill: 'bg-sky-400 text-slate-950'
+            },
+            {
+                dot: 'bg-amber-400',
+                text: 'text-amber-400',
+                badgeBg: 'bg-amber-950/80 text-amber-300 border-amber-500/40',
+                cardActive: 'bg-amber-950/35 border-amber-400 shadow-[0_0_18px_rgba(251,191,36,0.22)] ring-1 ring-amber-400/40',
+                pill: 'bg-amber-400 text-slate-950'
+            }
+        ];
 
-        // Dart tahtasındaki açık (krem/beyaz) dilime denk gelen sayılar:
+        // Uygulama Durum Değişkenleri
+        let selectedPlayerCount = 1;
+        let targetScore = 501;
+        let players = []; // { name, score, themeIndex }
+        let currentPlayerIndex = 0;
+        let scoreHistory = []; // { playerIndex, startScore, darts, total, endScore, isBust }
+        let currentDarts = []; // { baseVal, mult, val, label, isDouble }
+        let bustTimeout = null;
+        let toastTimeout = null;
+        const checkoutRoutes = {};
+
+        // Dart tahtasındaki açık (krem/beyaz) dilime denk gelen sayılar
         const lightNumbers = [1, 4, 6, 15, 17, 19, 16, 11, 9, 5];
 
-        // Generates checkout routes from 170 down to 2 as arrays of dart strings
-        function generateCheckouts() {
-            const singles = [];
-            const doubles = [];
-            const trebles = [];
-            
-            for(let i=1; i<=20; i++) {
-                singles.push({ name: `${i}`, val: i });
-                doubles.push({ name: `${i}x2`, val: i * 2 });
-                trebles.push({ name: `${i}x3`, val: i * 3 });
-            }
-            singles.push({ name: '25', val: 25 });
-            doubles.push({ name: 'BULL', val: 50 });
-
-            const allDarts = [...singles, ...doubles, ...trebles].sort((a, b) => b.val - a.val);
-            const finishPreferences = { 40: 1, 32: 2, 24: 3, 16: 4, 36: 5, 20: 6, 8: 7, 50: 8 }; 
-            const finishDarts = [...doubles].sort((a, b) => (finishPreferences[a.val] || 99) - (finishPreferences[b.val] || 99));
-
-            // 1 Dart Finish
-            for(let d of finishDarts) {
-                if(!checkoutRoutes[d.val]) checkoutRoutes[d.val] = [];
-                if(checkoutRoutes[d.val].length < 2) checkoutRoutes[d.val].push([d.name]);
-            }
-
-            // 2 Dart Finish
-            for(let d1 of allDarts) {
-                for(let d2 of finishDarts) {
-                    let total = d1.val + d2.val;
-                    if(total <= 170) {
-                        if(!checkoutRoutes[total]) checkoutRoutes[total] = [];
-                        let routeStr = JSON.stringify([d1.name, d2.name]);
-                        if(checkoutRoutes[total].length < 2 && !checkoutRoutes[total].some(r => JSON.stringify(r) === routeStr)) {
-                            checkoutRoutes[total].push([d1.name, d2.name]);
-                        }
-                    }
-                }
-            }
-
-            // 3 Dart Finish
-            for(let d1 of allDarts) {
-                for(let d2 of allDarts) {
-                    for(let d3 of finishDarts) {
-                        let total = d1.val + d2.val + d3.val;
-                        if(total <= 170) {
-                            if(!checkoutRoutes[total]) checkoutRoutes[total] = [];
-                            let routeStr = JSON.stringify([d1.name, d2.name, d3.name]);
-                            if(checkoutRoutes[total].length < 2 && !checkoutRoutes[total].some(r => JSON.stringify(r) === routeStr)) {
-                                checkoutRoutes[total].push([d1.name, d2.name, d3.name]);
-                            }
-                        }
-                    }
-                }
-            }
-        }
-
-        // Initialize 1-20 buttons dynamically with dartboard slice colors
+        /**
+         * 1-20 arası sayı tuşlarını dart tahtası dilim renklerine göre oluşturur.
+         */
         function initGrid() {
             const grid = document.getElementById('numbers-grid');
+            if (!grid) return;
             grid.innerHTML = '';
-            for(let i=1; i<=20; i++) {
+
+            for (let i = 1; i <= 20; i++) {
                 const btn = document.createElement('button');
-                const isLight = lightNumbers.includes(i);
-                
-                if (isLight) {
-                    // Açık renkli dilimler (1, 4, 5, 6, 9, 11, 15, 16, 17, 19)
-                    btn.className = "btn-press bg-slate-600/90 hover:bg-slate-500 rounded-xl text-xl font-bold text-white flex items-center justify-center border border-slate-400/50 shadow-sm";
-                } else {
-                    // Koyu renkli dilimler (2, 3, 7, 8, 10, 12, 13, 14, 18, 20)
-                    btn.className = "btn-press bg-slate-900 hover:bg-slate-800 rounded-xl text-xl font-bold text-slate-200 flex items-center justify-center border border-slate-800 shadow-inner";
-                }
-                
+                const isLightSlice = lightNumbers.includes(i);
+
+                btn.type = 'button';
                 btn.innerText = i;
                 btn.onclick = () => addDart(i);
+                btn.className = isLightSlice
+                    ? 'btn-press bg-slate-600 hover:bg-slate-500 rounded-xl text-lg sm:text-xl font-bold text-white flex items-center justify-center border border-slate-500/80 shadow-md transition-colors'
+                    : 'btn-press bg-slate-900 hover:bg-slate-800 rounded-xl text-lg sm:text-xl font-bold text-slate-300 flex items-center justify-center border border-slate-700/80 shadow-inner transition-colors';
+
                 grid.appendChild(btn);
             }
         }
 
+        /**
+         * 170'ten 2'ye kadar en olası bitiriş senaryolarını (en fazla 2 farklı yol) hesaplar.
+         * Double-out kuralına göre 20x3, 20x2, BULL formatında rotalar üretir.
+         */
+        function generateCheckouts() {
+            const doublePriority = {
+                40: 100, 32: 98, 16: 92, 20: 90, 24: 86, 36: 84, 8: 82,
+                12: 78, 50: 74, 18: 72, 28: 70, 4: 66, 30: 62, 10: 60,
+                38: 56, 22: 52, 26: 50, 34: 48, 14: 44, 6: 42, 2: 36
+            };
+
+            const doubles = [];
+            for (let n = 1; n <= 20; n++) {
+                doubles.push({ val: n * 2, label: `${n}x2`, mult: 2, prio: doublePriority[n * 2] || 30 });
+            }
+            doubles.push({ val: 50, label: 'BULL', mult: 2, prio: doublePriority[50] });
+
+            const setupDarts = [];
+            for (let n = 1; n <= 20; n++) {
+                setupDarts.push({ val: n, label: `${n}`, mult: 1, ease: 40 + n * 0.5 });
+            }
+            setupDarts.push({ val: 25, label: '25', mult: 1, ease: 32 });
+            for (let n = 7; n <= 20; n++) {
+                setupDarts.push({ val: n * 3, label: `${n}x3`, mult: 3, ease: 20 + n * 0.8 });
+            }
+            for (let n = 11; n <= 20; n++) {
+                setupDarts.push({ val: n * 2, label: `${n}x2`, mult: 2, ease: 10 + n * 0.4 });
+            }
+            setupDarts.push({ val: 50, label: 'BULL', mult: 2, ease: 14 });
+
+            const candidatesByScore = {};
+            const addCandidate = (score, dartCount, routeArr, qualityScore) => {
+                if (score < 2 || score > 170) return;
+                if (!candidatesByScore[score]) {
+                    candidatesByScore[score] = { minDarts: dartCount, routes: new Map() };
+                }
+                const entry = candidatesByScore[score];
+                if (dartCount < entry.minDarts) {
+                    entry.minDarts = dartCount;
+                    entry.routes.clear();
+                }
+                if (dartCount === entry.minDarts) {
+                    const key = routeArr.join('|');
+                    const existing = entry.routes.get(key);
+                    if (!existing || qualityScore > existing.qualityScore) {
+                        entry.routes.set(key, { route: routeArr, qualityScore });
+                    }
+                }
+            };
+
+            // 1 Okluk Bitirişler
+            for (const d of doubles) {
+                addCandidate(d.val, 1, [d.label], d.prio);
+            }
+
+            // 2 Okluk Bitirişler
+            for (const s1 of setupDarts) {
+                for (const d of doubles) {
+                    const total = s1.val + d.val;
+                    if (total > 170) continue;
+                    if (candidatesByScore[total] && candidatesByScore[total].minDarts < 2) continue;
+                    addCandidate(total, 2, [s1.label, d.label], d.prio + s1.ease);
+                }
+            }
+
+            // 3 Okluk Bitirişler
+            for (let i = 0; i < setupDarts.length; i++) {
+                for (let j = i; j < setupDarts.length; j++) {
+                    const a = setupDarts[i];
+                    const b = setupDarts[j];
+                    const first = a.val >= b.val ? a : b;
+                    const second = a.val >= b.val ? b : a;
+                    const setupSum = first.val + second.val;
+
+                    for (const d of doubles) {
+                        const total = setupSum + d.val;
+                        if (total > 170) continue;
+                        if (candidatesByScore[total] && candidatesByScore[total].minDarts < 3) continue;
+                        addCandidate(total, 3, [first.label, second.label, d.label], d.prio + first.ease + second.ease);
+                    }
+                }
+            }
+
+            // Her skor için en olası en fazla 2 farklı yolu kaydet
+            for (let score = 2; score <= 170; score++) {
+                const entry = candidatesByScore[score];
+                if (!entry) continue;
+                checkoutRoutes[score] = Array.from(entry.routes.values())
+                    .sort((x, y) => y.qualityScore - x.qualityScore)
+                    .slice(0, 2)
+                    .map(item => item.route);
+            }
+        }
+
+        /**
+         * Oyuncu sayısı seçimini ve isim alanlarını günceller.
+         */
+        function selectPlayerCount(count) {
+            selectedPlayerCount = count;
+            for (let i = 1; i <= 3; i++) {
+                const btn = document.getElementById(`pc-btn-${i}`);
+                if (!btn) continue;
+                btn.className = (i === count)
+                    ? "btn-press py-2.5 rounded-xl text-sm font-bold transition-all bg-blue-600 text-white shadow-md"
+                    : "btn-press py-2.5 rounded-xl text-sm font-bold transition-all text-slate-400 hover:text-white";
+            }
+
+            const namesContainer = document.getElementById('player-names-container');
+            const nameRow2 = document.getElementById('name-row-2');
+
+            if (count === 1) {
+                namesContainer.classList.add('hidden');
+            } else {
+                namesContainer.classList.remove('hidden');
+                if (count === 3) {
+                    nameRow2.classList.remove('hidden');
+                } else {
+                    nameRow2.classList.add('hidden');
+                }
+            }
+        }
+
+        /**
+         * Seçilen mod (301/501) ve oyuncu sayısı ile oyunu başlatır.
+         */
         function startGame(mode) {
             clearTimeout(bustTimeout);
             targetScore = mode;
-            turnStartScore = mode;
+            players = [];
+
+            for (let i = 0; i < selectedPlayerCount; i++) {
+                const inputEl = document.getElementById(`player-name-${i}`);
+                const rawName = (selectedPlayerCount > 1 && inputEl) ? inputEl.value.trim() : '';
+                players.push({
+                    name: rawName || `Oyuncu ${i + 1}`,
+                    score: mode,
+                    themeIndex: i
+                });
+            }
+
+            currentPlayerIndex = 0;
             scoreHistory = [];
             currentDarts = [];
-            
+
             document.getElementById('setup-view').classList.add('hidden');
             document.getElementById('game-view').classList.remove('hidden');
             document.getElementById('win-view').classList.add('hidden');
             document.getElementById('history-dropdown').classList.add('hidden');
-            
-            document.getElementById('game-mode-label').innerText = `${mode} MODU`;
+
+            const modeText = selectedPlayerCount > 1 ? `${mode} • ${selectedPlayerCount} KİŞİ` : `${mode} MODU`;
+            document.getElementById('game-mode-label').innerText = modeText;
             updateUI();
         }
 
+        /**
+         * Aynı oyuncu ve mod ayarlarıyla oyunu sıfırdan başlatır.
+         */
+        function rematchGame() {
+            clearTimeout(bustTimeout);
+            players.forEach(p => { p.score = targetScore; });
+            currentPlayerIndex = 0;
+            scoreHistory = [];
+            currentDarts = [];
+
+            document.getElementById('win-view').classList.add('hidden');
+            document.getElementById('game-view').classList.remove('hidden');
+            document.getElementById('history-dropdown').classList.add('hidden');
+            updateUI();
+        }
+
+        /**
+         * Tur geçmişi penceresini açar veya kapatır.
+         */
         function toggleHistory() {
             const dropdown = document.getElementById('history-dropdown');
             dropdown.classList.toggle('hidden');
         }
 
+        /**
+         * Çıkış onay penceresini açar (henüz atış yapılmadıysa doğrudan menüye döner).
+         */
+        function requestExit() {
+            if (scoreHistory.length === 0 && currentDarts.length === 0) {
+                confirmResetApp();
+                return;
+            }
+            document.getElementById('exit-modal').classList.remove('hidden');
+        }
+
+        function closeExitModal() {
+            document.getElementById('exit-modal').classList.add('hidden');
+        }
+
+        function confirmResetApp() {
+            clearTimeout(bustTimeout);
+            document.getElementById('exit-modal').classList.add('hidden');
+            document.getElementById('game-view').classList.add('hidden');
+            document.getElementById('win-view').classList.add('hidden');
+            document.getElementById('history-dropdown').classList.add('hidden');
+            document.getElementById('setup-view').classList.remove('hidden');
+            currentDarts = [];
+            scoreHistory = [];
+        }
+
+        /**
+         * Aktif tura yeni bir ok puanı ekler.
+         */
         function addDart(baseVal) {
-            if (currentDarts.length >= 3) return;
+            if (currentDarts.length >= 3) {
+                showToast("3 ok doldu, Turu Geç'e basın", "bg-blue-600");
+                return;
+            }
             clearTimeout(bustTimeout);
 
             let mult = 1;
@@ -289,24 +526,25 @@
                 mult = 2;
             }
 
-            let val = actualBase * mult;
-            let isDouble = (mult === 2);
-            let label = (baseVal === 50) ? "BULL" : val.toString();
+            const val = actualBase * mult;
+            const isDouble = (mult === 2);
+            const label = (baseVal === 50) ? "BULL" : val.toString();
 
-            let newDart = { baseVal: actualBase, mult, val, label, isDouble };
-            currentDarts.push(newDart);
-            
+            currentDarts.push({ baseVal: actualBase, mult, val, label, isDouble });
             checkTurnState();
         }
 
+        /**
+         * Son girilen oka x2 veya x3 çarpanı uygular (tekrar basılırsa 1x'e döner).
+         */
         function applyMultiplier(targetMult) {
             if (currentDarts.length === 0) {
                 showToast("Önce bir sayı seçin!", "bg-slate-700");
                 return;
             }
-            
+
             clearTimeout(bustTimeout);
-            let lastDart = currentDarts[currentDarts.length - 1];
+            const lastDart = currentDarts[currentDarts.length - 1];
 
             if (lastDart.baseVal === 0) {
                 showToast("0 puan katlanamaz!", "bg-slate-700");
@@ -317,74 +555,104 @@
                 return;
             }
 
-            // Aynı çarpana tekrar basılırsa 1 kata geri döndür (toggle)
-            if (lastDart.mult === targetMult) {
-                lastDart.mult = 1;
-            } else {
-                lastDart.mult = targetMult;
-            }
-
+            lastDart.mult = (lastDart.mult === targetMult) ? 1 : targetMult;
             lastDart.val = lastDart.baseVal * lastDart.mult;
             lastDart.isDouble = (lastDart.mult === 2);
-            
-            if (lastDart.baseVal === 25 && lastDart.mult === 2) {
-                lastDart.label = "BULL";
-            } else {
-                // İstediğiniz gibi 5 -> x2 yapıldığında direkt 10 yazacak
-                lastDart.label = lastDart.val.toString();
-            }
+            lastDart.label = (lastDart.baseVal === 25 && lastDart.mult === 2)
+                ? "BULL"
+                : lastDart.val.toString();
 
             checkTurnState();
         }
 
+        /**
+         * Her ok girişinden sonra bust veya kazanma durumunu canlı kontrol eder.
+         */
         function checkTurnState() {
             updateUI();
 
-            let currentTurnTotal = currentDarts.reduce((acc, d) => acc + d.val, 0);
-            let liveRemaining = turnStartScore - currentTurnTotal;
-            let lastDart = currentDarts[currentDarts.length - 1];
+            const activePlayer = players[currentPlayerIndex];
+            const currentTurnTotal = currentDarts.reduce((acc, d) => acc + d.val, 0);
+            const liveRemaining = activePlayer.score - currentTurnTotal;
+            const lastDart = currentDarts[currentDarts.length - 1];
 
             if (liveRemaining < 0 || liveRemaining === 1) {
-                // BUST - Kullanıcının hemen ardından x2/x3 basabilmesine fırsat tanımak için kısa süre bekle
-                showToast("Karavana (Bust)!", "bg-orange-500");
+                const bustMsg = players.length > 1 ? `${activePlayer.name}: Karavana!` : "Karavana (Bust)!";
+                showToast(bustMsg, "bg-orange-500");
                 bustTimeout = setTimeout(() => submitTurn(true), 1200);
                 return;
             }
 
             if (liveRemaining === 0) {
                 if (lastDart && lastDart.isDouble) {
-                    // WIN
-                    bustTimeout = setTimeout(() => showWinScreen(), 500);
-                    return;
+                    bustTimeout = setTimeout(() => finalizeWin(), 450);
                 } else {
-                    // Tek sayı ile sıfırlandı ama belki hemen şimdi x2'ye basacak, değilse Bust:
                     showToast("Double ile bitilmeli!", "bg-red-500");
                     bustTimeout = setTimeout(() => submitTurn(true), 1400);
-                    return;
                 }
             }
         }
 
-        function submitTurn(isBust = false) {
+        /**
+         * Oyunu bitirir, son turu kaydeder ve kazanma ekranını açar.
+         */
+        function finalizeWin() {
             clearTimeout(bustTimeout);
-            if (!isBust && currentDarts.length === 0) return; 
-            
-            let roundScore = currentDarts.reduce((acc, d) => acc + d.val, 0);
-            let endScore = isBust ? turnStartScore : (turnStartScore - roundScore);
+            const activePlayer = players[currentPlayerIndex];
+            const roundScore = currentDarts.reduce((acc, d) => acc + d.val, 0);
 
             scoreHistory.push({
-                startScore: turnStartScore,
+                playerIndex: currentPlayerIndex,
+                startScore: activePlayer.score,
+                darts: currentDarts.map(d => ({ ...d })),
+                total: roundScore,
+                endScore: 0,
+                isBust: false
+            });
+            activePlayer.score = 0;
+            currentDarts = [];
+            showWinScreen(activePlayer);
+        }
+
+        /**
+         * Mevcut turu kaydeder ve çok oyunculu modda sırayı sonraki oyuncuya geçirir.
+         */
+        function submitTurn(isBust = false) {
+            clearTimeout(bustTimeout);
+            if (!isBust && currentDarts.length === 0) {
+                showToast("Atış girin veya 0'a basın", "bg-slate-700");
+                return;
+            }
+
+            const activePlayer = players[currentPlayerIndex];
+            const roundScore = currentDarts.reduce((acc, d) => acc + d.val, 0);
+            const endScore = isBust ? activePlayer.score : (activePlayer.score - roundScore);
+
+            scoreHistory.push({
+                playerIndex: currentPlayerIndex,
+                startScore: activePlayer.score,
                 darts: currentDarts.map(d => ({ ...d })),
                 total: isBust ? 0 : roundScore,
                 endScore: endScore,
                 isBust: isBust
             });
-            
-            turnStartScore = endScore;
+
+            activePlayer.score = endScore;
             currentDarts = [];
+
+            if (players.length > 1) {
+                currentPlayerIndex = (currentPlayerIndex + 1) % players.length;
+                if (!isBust) {
+                    showToast(`Sıra: ${players[currentPlayerIndex].name}`, "bg-slate-700");
+                }
+            }
+
             updateUI();
         }
 
+        /**
+         * Aktif turdaki son girilen oku siler.
+         */
         function undoLastDart() {
             clearTimeout(bustTimeout);
             if (currentDarts.length > 0) {
@@ -393,6 +661,9 @@
             }
         }
 
+        /**
+         * Aktif turda ok varsa temizler; yoksa bir önceki tamamlanan tura geri döner.
+         */
         function undoTurn() {
             clearTimeout(bustTimeout);
             if (currentDarts.length > 0) {
@@ -401,29 +672,238 @@
                 showToast("Oklar Temizlendi", "bg-slate-700");
             } else if (scoreHistory.length > 0) {
                 const lastTurn = scoreHistory.pop();
-                turnStartScore = lastTurn.startScore;
+                currentPlayerIndex = lastTurn.playerIndex;
+                players[currentPlayerIndex].score = lastTurn.startScore;
                 currentDarts = [];
                 updateUI();
-                showToast("Önceki Tura Dönüldü", "bg-slate-700");
+                const msg = players.length > 1
+                    ? `${players[currentPlayerIndex].name} turuna dönüldü`
+                    : "Önceki Tura Dönüldü";
+                showToast(msg, "bg-slate-700");
             } else {
                 showToast("Geri alınacak hamle yok", "bg-slate-700");
             }
         }
 
-        function updateUI() {
-            // Live score calculation
-            let roundScore = currentDarts.reduce((acc, d) => acc + d.val, 0);
-            let displayScore = turnStartScore - roundScore;
-            
-            document.getElementById('current-score').innerText = displayScore;
+        /**
+         * Bir oyuncunun 3-ok ortalamasını ve son tur bilgisini hesaplar.
+         */
+        function getPlayerStats(pIdx) {
+            const pTurns = scoreHistory.filter(t => t.playerIndex === pIdx);
+            const totalPoints = pTurns.reduce((sum, t) => sum + t.total, 0);
+            const totalDarts = pTurns.reduce((sum, t) => sum + t.darts.length, 0);
+            const avg = totalDarts > 0 ? ((totalPoints / totalDarts) * 3).toFixed(1) : '-';
+            const lastTurn = pTurns.length > 0 ? pTurns[pTurns.length - 1] : null;
+            return { avg, lastTurn, totalDarts, turnCount: pTurns.length };
+        }
 
-            // Dart Slots Display
+        /**
+         * Kullanıcı girişi olan oyuncu isimleri için güvenli HTML kaçışı.
+         */
+        function escapeHtml(str) {
+            return str.replace(/[&<>"']/g, m => ({
+                '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
+            }[m]));
+        }
+
+        /**
+         * Tek kişilik büyük skor veya 2-3 kişilik yan yana skor kartlarını çizer.
+         */
+        function renderScoreboard(liveActiveScore) {
+            const container = document.getElementById('scoreboard-container');
+
+            if (players.length === 1) {
+                const stats = getPlayerStats(0);
+                container.innerHTML = `
+                    <div class="flex flex-col items-center">
+                        <div class="flex items-center gap-2 mb-0.5">
+                            <span class="text-slate-400 text-[11px] font-semibold uppercase tracking-widest">Kalan Skor</span>
+                            ${stats.avg !== '-' ? `<span class="text-[10px] font-bold bg-slate-800 text-slate-300 px-2 py-0.5 rounded-full border border-slate-700">Ort: ${stats.avg}</span>` : ''}
+                        </div>
+                        <div class="text-6xl sm:text-7xl font-display font-black text-white tracking-tighter drop-shadow-xl leading-none py-0.5">
+                            ${liveActiveScore}
+                        </div>
+                    </div>
+                `;
+                return;
+            }
+
+            const gridCols = players.length === 2 ? 'grid-cols-2 gap-2.5' : 'grid-cols-3 gap-1.5';
+            const scoreSize = players.length === 2 ? 'text-4xl sm:text-5xl' : 'text-3xl sm:text-4xl';
+
+            container.innerHTML = `
+                <div class="grid ${gridCols} w-full">
+                    ${players.map((p, idx) => {
+                        const isActive = idx === currentPlayerIndex;
+                        const theme = PLAYER_THEMES[p.themeIndex];
+                        const displayVal = isActive ? liveActiveScore : p.score;
+                        const stats = getPlayerStats(idx);
+
+                        let subStat = 'Ort: -';
+                        if (stats.lastTurn) {
+                            subStat = stats.lastTurn.isBust ? 'Son: BUST' : `Son: -${stats.lastTurn.total}`;
+                        }
+
+                        return `
+                            <div class="relative rounded-2xl border-2 px-2 py-1.5 sm:py-2 flex flex-col items-center justify-between transition-all duration-200 ${isActive ? theme.cardActive : 'bg-slate-800/50 border-slate-800 opacity-65'}">
+                                <div class="w-full flex items-center justify-center gap-1">
+                                    <span class="w-2 h-2 rounded-full shrink-0 ${theme.dot} ${isActive ? 'animate-pulse' : ''}"></span>
+                                    <span class="text-xs font-bold truncate max-w-[85%] ${isActive ? 'text-white' : 'text-slate-400'}">${escapeHtml(p.name)}</span>
+                                </div>
+                                <div class="${scoreSize} font-display font-black tracking-tight leading-none my-1 ${isActive ? 'text-white' : 'text-slate-300'}">
+                                    ${displayVal}
+                                </div>
+                                <div class="w-full flex items-center justify-center">
+                                    ${isActive
+                                        ? `<span class="text-[10px] font-extrabold uppercase tracking-wider px-2 py-0.5 rounded-full ${theme.pill}">SIRADA</span>`
+                                        : `<span class="text-[10px] font-semibold text-slate-400 truncate">${subStat}</span>`
+                                    }
+                                </div>
+                            </div>
+                        `;
+                    }).join('')}
+                </div>
+            `;
+        }
+
+        /**
+         * Aktif skor ve kalan ok hakkına göre bitiriş senaryolarını günceller.
+         */
+        function renderCheckoutSuggestions(displayScore) {
+            const container = document.getElementById('checkout-container');
+            const wrapper = document.getElementById('checkout-routes-wrapper');
+            const dartsLeft = 3 - currentDarts.length;
+
+            if (dartsLeft <= 0 || displayScore < 2 || displayScore > 170 || !checkoutRoutes[displayScore]) {
+                container.classList.add('opacity-0');
+                wrapper.innerHTML = '';
+                return;
+            }
+
+            // Kalan ok sayısı ile bitirilebilecek rotaları filtrele
+            const validRoutes = checkoutRoutes[displayScore].filter(route => route.length <= dartsLeft);
+            if (validRoutes.length === 0) {
+                container.classList.add('opacity-0');
+                wrapper.innerHTML = '';
+                return;
+            }
+
+            wrapper.innerHTML = validRoutes.map((route, idx) => {
+                const pills = route.map((step, sIdx) => {
+                    const isLastDouble = (sIdx === route.length - 1);
+                    const pillClass = isLastDouble
+                        ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/50'
+                        : 'bg-slate-800 text-amber-300 border-slate-600/80';
+                    return `<span class="px-2 py-0.5 rounded-md border text-[11px] sm:text-xs font-display font-bold ${pillClass}">${step}</span>`;
+                }).join('<span class="text-slate-500 text-[10px] font-bold">→</span>');
+
+                const tag = validRoutes.length > 1 ? `<span class="text-[10px] font-bold text-slate-400 mr-1">${idx + 1}.</span>` : `<span class="text-[10px] font-bold text-emerald-400 mr-1">BİTİRİŞ:</span>`;
+                return `<div class="flex items-center justify-center gap-1">${tag}${pills}</div>`;
+            }).join('');
+
+            container.classList.remove('opacity-0');
+        }
+
+        /**
+         * Geçmiş turlar listesini ve rozet sayacını günceller.
+         */
+        function renderHistory() {
+            const badge = document.getElementById('turn-count-badge');
+            const list = document.getElementById('history-list');
+            badge.innerText = scoreHistory.length;
+
+            if (scoreHistory.length === 0) {
+                list.innerHTML = '<div class="text-slate-500 text-center py-3 text-xs">Henüz tamamlanan tur yok</div>';
+                return;
+            }
+
+            // En son tur en üstte görünecek şekilde listele
+            list.innerHTML = [...scoreHistory].reverse().map((turn, revIdx) => {
+                const turnNo = scoreHistory.length - revIdx;
+                const player = players[turn.playerIndex] || { name: 'Oyuncu', themeIndex: 0 };
+                const theme = PLAYER_THEMES[player.themeIndex];
+                const dartsText = turn.darts.map(d => {
+                    if (d.mult === 3) return `${d.baseVal}x3`;
+                    if (d.mult === 2 && d.baseVal !== 25) return `${d.baseVal}x2`;
+                    return d.label;
+                }).join(' • ');
+
+                return `
+                    <div class="flex items-center justify-between bg-slate-900/80 border border-slate-700/70 rounded-xl px-3 py-2">
+                        <div class="flex items-center gap-2 min-w-0">
+                            <span class="text-[11px] font-bold text-slate-500 w-5">#${turnNo}</span>
+                            ${players.length > 1 ? `<span class="text-[11px] font-bold px-2 py-0.5 rounded-full border ${theme.badgeBg} truncate max-w-[76px]">${escapeHtml(player.name)}</span>` : ''}
+                            <span class="text-xs text-slate-300 font-semibold truncate">${dartsText || '-'}</span>
+                        </div>
+                        <div class="flex items-center gap-2 shrink-0 ml-2">
+                            ${turn.isBust
+                                ? `<span class="text-xs font-extrabold text-orange-400">BUST</span>`
+                                : `<span class="text-xs font-bold text-emerald-400">-${turn.total}</span>`
+                            }
+                            <span class="text-xs font-display font-bold text-white bg-slate-800 px-2 py-0.5 rounded-md border border-slate-700">${turn.endScore}</span>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        /**
+         * Tüm oyun ekranı bileşenlerini senkronize biçimde günceller.
+         */
+        function updateUI() {
+            const activePlayer = players[currentPlayerIndex];
+            if (!activePlayer) return;
+
+            const theme = PLAYER_THEMES[activePlayer.themeIndex];
+            const roundScore = currentDarts.reduce((acc, d) => acc + d.val, 0);
+            const displayScore = activePlayer.score - roundScore;
+
+            renderScoreboard(displayScore);
+            renderCheckoutSuggestions(displayScore);
+            renderHistory();
+
+            // Aktif tur satırı & toplam puan
+            document.getElementById('current-turn-sum').innerText = roundScore;
+            document.getElementById('active-turn-dot').className = `w-2 h-2 rounded-full ${theme.dot}`;
+            document.getElementById('active-turn-name').innerText = players.length > 1
+                ? `${activePlayer.name} Atıyor`
+                : 'Bu Turdaki Oklar';
+
+            // Çarpan tuşlarının aktif durum vurgusu (son oka göre)
+            const lastDart = currentDarts.length > 0 ? currentDarts[currentDarts.length - 1] : null;
+            const mod2Btn = document.getElementById('btn-mod-2');
+            const mod3Btn = document.getElementById('btn-mod-3');
+
+            mod2Btn.className = (lastDart && lastDart.mult === 2)
+                ? "btn-press flex-1 bg-blue-600/30 rounded-xl border-2 border-blue-400 text-sm sm:text-base font-extrabold text-blue-200 flex items-center justify-center transition-colors shadow-md"
+                : "btn-press flex-1 bg-slate-800 rounded-xl border-2 border-slate-700 text-sm sm:text-base font-bold text-slate-300 flex items-center justify-center transition-colors";
+
+            mod3Btn.className = (lastDart && lastDart.mult === 3)
+                ? "btn-press flex-1 bg-emerald-600/30 rounded-xl border-2 border-emerald-400 text-sm sm:text-base font-extrabold text-emerald-200 flex items-center justify-center transition-colors shadow-md"
+                : "btn-press flex-1 bg-slate-800 rounded-xl border-2 border-slate-700 text-sm sm:text-base font-bold text-slate-300 flex items-center justify-center transition-colors";
+
+            // TURU GEÇ butonunu dinamik güncelle
+            const submitBtn = document.getElementById('btn-submit-turn');
+            if (currentDarts.length === 3) {
+                submitBtn.className = "btn-press col-span-2 bg-emerald-600 hover:bg-emerald-500 rounded-xl text-sm sm:text-base font-extrabold text-white flex items-center justify-center gap-1 shadow-lg shadow-emerald-900/50 border border-emerald-400 transition-all ready-pulse";
+                submitBtn.innerHTML = players.length > 1
+                    ? `<span>GEÇ (-${roundScore})</span>`
+                    : `<span>TURU GEÇ (-${roundScore})</span>`;
+            } else if (currentDarts.length > 0) {
+                submitBtn.className = "btn-press col-span-2 bg-blue-600 hover:bg-blue-500 rounded-xl text-sm sm:text-base font-bold text-white flex items-center justify-center gap-1 shadow-lg shadow-blue-900/50 border border-blue-500 transition-all";
+                submitBtn.innerHTML = `<span>TURU GEÇ (-${roundScore})</span>`;
+            } else {
+                submitBtn.className = "btn-press col-span-2 bg-blue-600/80 hover:bg-blue-500 rounded-xl text-base sm:text-lg font-bold text-white flex items-center justify-center gap-1 shadow-lg shadow-blue-900/40 border border-blue-500/70 transition-all";
+                submitBtn.innerHTML = `<span>TURU GEÇ</span>`;
+            }
+
+            // 3 Ok Kutusu
             for (let i = 1; i <= 3; i++) {
                 const el = document.getElementById(`dart-${i}`);
                 const dart = currentDarts[i - 1];
                 if (dart) {
                     el.innerText = dart.label;
-                    el.className = "flex-1 h-14 rounded-xl border-2 flex items-center justify-center text-2xl font-bold font-display transition-colors ";
+                    el.className = "flex-1 h-10 sm:h-11 rounded-xl border-2 flex items-center justify-center text-lg sm:text-xl font-bold font-display transition-colors ";
                     if (dart.mult === 3) {
                         el.className += "text-emerald-300 border-emerald-500 bg-emerald-900/30";
                     } else if (dart.mult === 2) {
@@ -433,116 +913,75 @@
                     }
                 } else {
                     el.innerText = "-";
-                    el.className = "flex-1 h-14 bg-slate-800/80 rounded-xl border-2 border-slate-700/50 flex items-center justify-center text-2xl font-bold font-display text-slate-600 transition-colors";
+                    el.className = "flex-1 h-10 sm:h-11 bg-slate-800/80 rounded-xl border-2 border-slate-700/50 flex items-center justify-center text-lg sm:text-xl font-bold font-display text-slate-600 transition-colors";
                 }
             }
-
-            // Son atılan okun çarpanına göre ÇİFT / ÜÇLÜ butonlarını vurgula
-            const btnMod2 = document.getElementById('btn-mod-2');
-            const btnMod3 = document.getElementById('btn-mod-3');
-            const lastDart = currentDarts[currentDarts.length - 1];
-            const activeMult = lastDart ? lastDart.mult : 1;
-            
-            if(activeMult === 2) {
-                btnMod2.className = "btn-press flex-1 bg-blue-600 rounded-xl border-2 border-blue-400 text-base sm:text-lg font-bold text-white flex items-center justify-center transition-colors shadow-lg shadow-blue-900/50";
-            } else {
-                btnMod2.className = "btn-press flex-1 bg-slate-800 rounded-xl border-2 border-slate-700 text-base sm:text-lg font-bold text-slate-300 flex items-center justify-center transition-colors";
-            }
-
-            if(activeMult === 3) {
-                btnMod3.className = "btn-press flex-1 bg-emerald-600 rounded-xl border-2 border-emerald-400 text-base sm:text-lg font-bold text-white flex items-center justify-center transition-colors shadow-lg shadow-emerald-900/50";
-            } else {
-                btnMod3.className = "btn-press flex-1 bg-slate-800 rounded-xl border-2 border-slate-700 text-base sm:text-lg font-bold text-slate-300 flex items-center justify-center transition-colors";
-            }
-
-            // Tur Geçmişini (Dropdown) Güncelle
-            document.getElementById('turn-count-badge').innerText = scoreHistory.length;
-            const historyList = document.getElementById('history-list');
-            if (scoreHistory.length === 0) {
-                historyList.innerHTML = '<div class="text-slate-500 text-center py-3 text-xs">Henüz tamamlanan tur yok</div>';
-            } else {
-                historyList.innerHTML = scoreHistory.map((turn, idx) => {
-                    const dartsStr = turn.darts.map(d => {
-                        if (d.mult === 2 && d.baseVal === 25) return 'BULL(50)';
-                        if (d.mult > 1) return `${d.val} <span class="text-[10px] text-slate-400">(${d.baseVal}x${d.mult})</span>`;
-                        return d.val;
-                    }).join(' , ');
-
-                    return `<div class="flex items-center justify-between bg-slate-900/90 px-3 py-2 rounded-lg border border-slate-700/60">
-                        <div class="flex items-center gap-2">
-                            <span class="text-xs font-bold text-slate-500 w-12">${idx + 1}. Tur</span>
-                            <span class="text-xs font-mono text-slate-200">${dartsStr}</span>
-                        </div>
-                        <div class="flex items-center gap-3">
-                            ${turn.isBust 
-                                ? '<span class="text-xs font-bold text-orange-400 bg-orange-950/60 px-2 py-0.5 rounded">BUST</span>' 
-                                : `<span class="text-xs font-bold text-emerald-400">-${turn.total}</span>`
-                            }
-                            <span class="text-sm font-display font-bold text-white w-10 text-right">${turn.endScore}</span>
-                        </div>
-                    </div>`;
-                }).reverse().join('');
-            }
-
-            // Checkout UI updating dynamically based on remaining darts
-            const checkoutContainer = document.getElementById('checkout-container');
-            const checkoutWrapper = document.getElementById('checkout-routes-wrapper');
-            const remainingDarts = 3 - currentDarts.length;
-            
-            if (displayScore <= 170 && displayScore > 0 && checkoutRoutes[displayScore] && remainingDarts > 0) {
-                // Filter routes that require less or equal darts than what user has left
-                const validRoutes = checkoutRoutes[displayScore].filter(route => route.length <= remainingDarts);
-                
-                if (validRoutes.length > 0) {
-                    const routesToDisplay = validRoutes.slice(0, 2);
-                    checkoutWrapper.innerHTML = routesToDisplay.map(r => 
-                        `<div class="bg-slate-800/90 px-4 py-1.5 rounded-lg border border-slate-700/50 text-emerald-400 font-mono text-sm md:text-base font-bold tracking-widest shadow-lg shadow-black/20 w-auto text-center">
-                            ${r.join(' <span class="text-slate-500 mx-1">&bull;</span> ')}
-                        </div>`
-                    ).join('');
-                    checkoutContainer.classList.remove('opacity-0');
-                } else {
-                    hideCheckouts(checkoutContainer, checkoutWrapper);
-                }
-            } else {
-                hideCheckouts(checkoutContainer, checkoutWrapper);
-            }
         }
 
-        function hideCheckouts(container, wrapper) {
-            container.classList.add('opacity-0');
-            setTimeout(() => {
-                if(container.classList.contains('opacity-0')) wrapper.innerHTML = '';
-            }, 300);
-        }
-
-        function resetApp() {
-            document.getElementById('setup-view').classList.remove('hidden');
+        /**
+         * Oyun sonu kazanma ekranını ve oyuncu istatistiklerini gösterir.
+         */
+        function showWinScreen(winner) {
             document.getElementById('game-view').classList.add('hidden');
-            document.getElementById('win-view').classList.add('hidden');
-        }
-
-        function showWinScreen() {
-            document.getElementById('game-view').classList.add('hidden');
+            document.getElementById('history-dropdown').classList.add('hidden');
             document.getElementById('win-view').classList.remove('hidden');
+
+            document.getElementById('winner-text').innerText = players.length > 1
+                ? `${winner.name} Kazandı!`
+                : 'Tebrikler, Kazandınız!';
+
+            const summaryEl = document.getElementById('win-summary');
+            summaryEl.innerHTML = players.map((p, idx) => {
+                const stats = getPlayerStats(idx);
+                const theme = PLAYER_THEMES[p.themeIndex];
+                const isWinner = p.score === 0;
+                return `
+                    <div class="flex items-center justify-between px-3 py-2 rounded-xl ${isWinner ? 'bg-emerald-950/50 border border-emerald-500/40' : 'bg-slate-900/70 border border-slate-700/50'}">
+                        <div class="flex items-center gap-2 min-w-0">
+                            <span class="w-2.5 h-2.5 rounded-full shrink-0 ${theme.dot}"></span>
+                            <span class="text-sm font-bold text-white truncate">${escapeHtml(p.name)} ${isWinner ? '👑' : ''}</span>
+                        </div>
+                        <div class="flex items-center gap-3 text-xs shrink-0">
+                            <span class="text-slate-400">Ort: <strong class="text-white">${stats.avg}</strong></span>
+                            <span class="text-slate-400">Ok: <strong class="text-white">${stats.totalDarts}</strong></span>
+                            <span class="font-display font-bold ${isWinner ? 'text-emerald-400' : 'text-slate-300'}">${p.score}</span>
+                        </div>
+                    </div>
+                `;
+            }).join('');
         }
 
-        let toastTimeout;
-        function showToast(message, colorClass) {
+        /**
+         * Ekranın üstünde geçici bildirim balonu gösterir.
+         */
+        function showToast(message, bgClass = "bg-slate-700") {
             const toast = document.getElementById('toast');
-            toast.innerText = message;
-            toast.className = `fixed top-4 left-1/2 z-50 px-6 py-3 rounded-full text-white font-bold shadow-lg text-lg pointer-events-none transform -translate-x-1/2 toast-anim ${colorClass}`;
-            void toast.offsetWidth; // restart anim
-            toast.classList.remove('hidden');
+            if (!toast) return;
+
             clearTimeout(toastTimeout);
-            toastTimeout = setTimeout(() => { toast.classList.add('hidden'); }, 1900);
+            toast.innerText = message;
+            toast.className = `fixed top-4 left-1/2 z-50 px-5 py-2.5 rounded-full text-white font-bold shadow-xl text-sm sm:text-base pointer-events-none transform -translate-x-1/2 whitespace-nowrap ${bgClass}`;
+
+            // Animasyonu yeniden tetiklemek için reflow
+            void toast.offsetWidth;
+            toast.classList.add('toast-anim');
+
+            toastTimeout = setTimeout(() => {
+                toast.classList.add('hidden');
+                toast.classList.remove('toast-anim');
+            }, 1900);
         }
 
-        window.onload = () => {
-            initGrid();
-            generateCheckouts();
+        // Uygulama Başlatma
+        window.onload = function () {
+            try {
+                initGrid();
+                generateCheckouts();
+                selectPlayerCount(1);
+            } catch (err) {
+                console.error("Başlatma hatası:", err);
+            }
         };
-
     </script>
 </body>
 </html>
